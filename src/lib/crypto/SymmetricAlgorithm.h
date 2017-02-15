@@ -67,7 +67,8 @@ struct SymWrap
 	{
 		Unknown,
 		AES_KEYWRAP,
-		AES_KEYWRAP_PAD
+		AES_KEYWRAP_PAD,
+		AES_CBC_PAD,
 	};
 };
 

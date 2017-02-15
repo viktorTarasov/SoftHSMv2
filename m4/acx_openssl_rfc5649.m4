@@ -44,6 +44,25 @@ AC_DEFUN([ACX_OPENSSL_EVPAESWRAP],[
 		AC_MSG_RESULT([RFC 5649 is not supported])
 	])
 
+	AC_MSG_CHECKING(OpenSSL EVP interface for AES CBC key wrapping with pad)
+	AC_LINK_IFELSE([
+		AC_LANG_SOURCE([[
+			#include <openssl/evp.h>
+			int main()
+			{
+				EVP_aes_128_cbc();
+				return 1;
+			}
+		]])
+	],[
+		AC_MSG_RESULT([AES CBC PAD key wrapping is supported])
+		AC_DEFINE([HAVE_AES_CBC_PAD], [1],
+		          [Define if AES-CBC-PAD key wrap is supported in EVP interface])
+	],[
+		AC_MSG_RESULT([AES-CBC-PAD is not supported])
+	])
+
+
 	AC_LANG_POP([C])
 
 	CPPFLAGS=$tmp_CPPFLAGS

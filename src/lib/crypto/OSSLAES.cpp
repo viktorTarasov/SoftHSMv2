@@ -133,7 +133,20 @@ const EVP_CIPHER* OSSLAES::getWrapCipher(const SymWrap::Type mode, const Symmetr
 		};
 	}
 #endif
-
+#ifdef HAVE_AES_CBC_PAD
+	if (mode == SymWrap::AES_CBC_PAD)
+	{
+		switch(key->getBitLen())
+		{
+			case 128:
+				return EVP_aes_128_cbc();
+			case 192:
+				return EVP_aes_192_cbc();
+			case 256:
+				return EVP_aes_256_cbc();
+		};
+	}
+#endif
 	ERROR_MSG("unknown AES key wrap mode %i", mode);
 	return NULL;
 }
@@ -162,12 +175,16 @@ bool OSSLAES::wrapUnwrapKey(const SymmetricKey* key, const SymWrap::Type mode, c
 		ERROR_MSG("Failed to allocate space for EVP_CIPHER_CTX");
 		return false;
 	}
-	EVP_CIPHER_CTX_set_flags(pWrapCTX, EVP_CIPHER_CTX_FLAG_WRAP_ALLOW);
+	if (mode != SymWrap::AES_CBC_PAD)   {
+		EVP_CIPHER_CTX_set_flags(pWrapCTX, EVP_CIPHER_CTX_FLAG_WRAP_ALLOW);
+	}
 
 	int rv = EVP_CipherInit_ex(pWrapCTX, cipher, NULL, (unsigned char*) key->getKeyBits().const_byte_str(), NULL, wrap);
-	if (rv)
+	if (rv && (mode != SymWrap::AES_CBC_PAD))   {
 		// Padding is handled by cipher mode separately
 		rv = EVP_CIPHER_CTX_set_padding(pWrapCTX, 0);
+	}
+
 	if (!rv)
 	{
 		ERROR_MSG("Failed to initialise EVP cipher %swrap operation", prefix);
@@ -192,6 +209,7 @@ bool OSSLAES::wrapUnwrapKey(const SymmetricKey* key, const SymWrap::Type mode, c
 		EVP_CIPHER_CTX_free(pWrapCTX);
 		return false;
 	}
+
 	EVP_CIPHER_CTX_free(pWrapCTX);
 	outLen += curBlockLen;
 	out.resize(outLen);

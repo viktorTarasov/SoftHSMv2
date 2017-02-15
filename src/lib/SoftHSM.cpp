@@ -5328,6 +5328,12 @@ CK_RV SoftHSM::WrapKeySym
 			mode = SymWrap::AES_KEYWRAP_PAD;
 			break;
 #endif
+#ifdef HAVE_AES_CBC_PAD
+		case CKM_AES_CBC_PAD:
+			algo = SymAlgo::AES;
+			mode = SymWrap::AES_CBC_PAD;
+			break;
+#endif
 		default:
 			return CKR_MECHANISM_INVALID;
 	}
@@ -5472,6 +5478,18 @@ CK_RV SoftHSM::C_WrapKey
 	// Check the mechanism, only accept advanced AES key wrapping and RSA
 	switch(pMechanism->mechanism)
 	{
+#ifdef HAVE_AES_CBC_PAD
+		case CKM_AES_CBC_PAD:
+			if (pMechanism->pParameter != NULL_PTR && pMechanism->ulParameterLen != 0)  {
+				unsigned ii;
+				for (ii=0; ii < pMechanism->ulParameterLen; ii++)
+					if (*((unsigned char *)(pMechanism->pParameter) + ii) != 0x00)
+						return CKR_ARGUMENTS_BAD;
+			}
+			else if (pMechanism->pParameter != NULL_PTR || pMechanism->ulParameterLen != 0)
+				return CKR_ARGUMENTS_BAD;
+			break;
+#endif
 #ifdef HAVE_AES_KEY_WRAP
 		case CKM_AES_KEY_WRAP:
 #endif
@@ -5525,6 +5543,11 @@ CK_RV SoftHSM::C_WrapKey
 	if (pMechanism->mechanism == CKM_AES_KEY_WRAP_PAD && wrapKey->getUnsignedLongValue(CKA_KEY_TYPE, CKK_VENDOR_DEFINED) != CKK_AES)
 		return CKR_WRAPPING_KEY_TYPE_INCONSISTENT;
 	if ((pMechanism->mechanism == CKM_RSA_PKCS || pMechanism->mechanism == CKM_RSA_PKCS_OAEP) && wrapKey->getUnsignedLongValue(CKA_KEY_TYPE, CKK_VENDOR_DEFINED) != CKK_RSA)
+		return CKR_WRAPPING_KEY_TYPE_INCONSISTENT;
+
+	if (pMechanism->mechanism == CKM_AES_CBC_PAD && wrapKey->getUnsignedLongValue(CKA_CLASS, CKO_VENDOR_DEFINED) != CKO_SECRET_KEY)
+		return CKR_WRAPPING_KEY_TYPE_INCONSISTENT;
+	if (pMechanism->mechanism == CKM_AES_CBC_PAD && wrapKey->getUnsignedLongValue(CKA_KEY_TYPE, CKK_VENDOR_DEFINED) != CKK_AES)
 		return CKR_WRAPPING_KEY_TYPE_INCONSISTENT;
 
 	// Check if the wrapping key can be used for wrapping
@@ -5714,6 +5737,12 @@ CK_RV SoftHSM::UnwrapKeySym
 			mode = SymWrap::AES_KEYWRAP_PAD;
 			break;
 #endif
+#ifdef HAVE_AES_KEY_WRAP_PAD
+		case CKM_AES_CBC_PAD:
+			algo = SymAlgo::AES;
+			mode = SymWrap::AES_CBC_PAD;
+			break;
+#endif
 		default:
 			return CKR_MECHANISM_INVALID;
 	}
@@ -5840,6 +5869,16 @@ CK_RV SoftHSM::C_UnwrapKey
 				return CKR_ARGUMENTS_BAD;
 			break;
 #endif
+#ifdef HAVE_AES_CBC_PAD
+		case CKM_AES_CBC_PAD:
+			if ((ulWrappedKeyLen < 16) || ((ulWrappedKeyLen % 8) != 0))
+				return CKR_WRAPPED_KEY_LEN_RANGE;
+			// Does not handle optional init vector
+			if (pMechanism->pParameter != NULL_PTR ||
+                            pMechanism->ulParameterLen != 0)
+				return CKR_ARGUMENTS_BAD;
+			break;
+#endif
 #ifdef HAVE_AES_KEY_WRAP_PAD
 		case CKM_AES_KEY_WRAP_PAD:
 			if ((ulWrappedKeyLen < 16) || ((ulWrappedKeyLen % 8) != 0))
@@ -5895,6 +5934,11 @@ CK_RV SoftHSM::C_UnwrapKey
 		return CKR_UNWRAPPING_KEY_TYPE_INCONSISTENT;
 	if ((pMechanism->mechanism == CKM_RSA_PKCS || pMechanism->mechanism == CKM_RSA_PKCS_OAEP) && unwrapKey->getUnsignedLongValue(CKA_KEY_TYPE, CKK_VENDOR_DEFINED) != CKK_RSA)
 		return CKR_UNWRAPPING_KEY_TYPE_INCONSISTENT;
+
+	if (pMechanism->mechanism == CKM_AES_CBC_PAD && unwrapKey->getUnsignedLongValue(CKA_CLASS, CKO_VENDOR_DEFINED) != CKO_SECRET_KEY)
+		return CKR_WRAPPING_KEY_TYPE_INCONSISTENT;
+	if (pMechanism->mechanism == CKM_AES_CBC_PAD && unwrapKey->getUnsignedLongValue(CKA_KEY_TYPE, CKK_VENDOR_DEFINED) != CKK_AES)
+		return CKR_WRAPPING_KEY_TYPE_INCONSISTENT;
 
 	// Check if the unwrapping key can be used for unwrapping
 	if (unwrapKey->getBooleanValue(CKA_UNWRAP, false) == false)

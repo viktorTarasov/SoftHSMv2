@@ -44,6 +44,9 @@ class SymmetricAlgorithmTests : public TestsBase
 #ifdef HAVE_AES_KEY_WRAP
 	CPPUNIT_TEST(testAesWrapUnwrap);
 #endif
+#ifdef HAVE_AES_CBC_PAD
+	CPPUNIT_TEST(testAesCbcWrapUnwrap);
+#endif
 	CPPUNIT_TEST(testNullTemplate);
 	CPPUNIT_TEST(testNonModifiableDesKeyGeneration);
 	CPPUNIT_TEST_SUITE_END();
@@ -52,6 +55,7 @@ public:
 	void testAesEncryptDecrypt();
 	void testDesEncryptDecrypt();
 	void testAesWrapUnwrap();
+	void testAesCbcWrapUnwrap();
 	void testNullTemplate();
 	void testNonModifiableDesKeyGeneration();
 	void testCheckValue();
@@ -72,6 +76,7 @@ protected:
 			bool isSizeOK=true,
 			bool isCBC=true);
 	void aesWrapUnwrap(CK_MECHANISM_TYPE mechanismType, CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE hKey);
+	void aesCbcWrapUnwrap(CK_MECHANISM_TYPE mechanismType, CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE hKey);
 #ifdef HAVE_AES_KEY_WRAP_PAD
 	CK_RV generateRsaPrivateKey(CK_SESSION_HANDLE hSession, CK_BBOOL bToken, CK_BBOOL bPrivate, CK_OBJECT_HANDLE &hKey);
 #endif
